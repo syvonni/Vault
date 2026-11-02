@@ -1,6 +1,6 @@
 # Vault POS Conceptual Schema
 
-Review position **06 of 07**. Review tables, fields, relationships, and invariants against the preceding planning decisions. Track this review in [GitHub issue #6](https://github.com/syvonni/Vault/issues/6). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
+Review position **06 of 08**. Review tables, fields, relationships, and invariants against the preceding planning decisions. Track this review in [GitHub issue #6](https://github.com/syvonni/Vault/issues/6). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 This model follows the [POS requirements](01-requirements.md) for shared hosted multi-tenant deployment and business-local single-tenant deployment using the same schema, one location per business, multiple registers, whole-unit stock, and manually recorded payments. It replaces the previous wallet/account schema. Roles are Owner, Manager, and Cashier; audit logs remain available to authorized Owner/Manager users. This schema is a draft: Milestone 0 must review it against feature specifications, database design goals, and the chosen Django identity/session approach before implementation.
 
@@ -27,9 +27,7 @@ The DBML includes logical keys, checks, and candidate indexes, but is not a comp
 
 ## Deployment Interpretation
 
-This DBML is shared by both deployment modes. The hosted database contains several tenants; a business-local database contains one tenant with the same tenant keys, constraints, and planned RLS protections. Local deployment does not introduce an embedded database, a separate schema variant, or a database on each client.
-
-Each installation has one authoritative PostgreSQL database and independent account/token records. Clients connect through that installation’s Django API. Cloud/local synchronization, automatic failover, and live business transfer/merge tooling are outside scope; no replication or synchronization tables are added.
+The same DBML serves both [deployment topologies](05-architecture-planning.md#deployment-boundary): multiple tenants in a hosted database, one tenant in a business-local database. Tenant keys and planned RLS remain in both; there is no per-device authoritative database or cloud/local synchronization model. Operating configuration and runbooks live in document 04.
 
 ## Planning Dependencies
 

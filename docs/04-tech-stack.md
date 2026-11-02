@@ -1,6 +1,6 @@
 # Vault POS — Tech Stack and Operating Plan
 
-Review position **04 of 07**. Resolve technology and operating choices that support the agreed requirements and workflows. Track this review in [GitHub issue #4](https://github.com/syvonni/Vault/issues/4). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
+Review position **04 of 08**. Resolve technology and operating choices that support the agreed requirements and workflows. Track this review in [GitHub issue #4](https://github.com/syvonni/Vault/issues/4). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: documentation only, reviewed against official documentation on 2026-11-01 (Asia/Manila). No application, dependencies, lockfiles, Docker configuration, migrations, CI workflow, credentials, or deployment have been created. Complete [Milestone 0](07-progress-checklist.md) before implementation.
 
@@ -11,7 +11,7 @@ This is one learning project, not a multi-release roadmap. Build order, package 
 - Python with Django for the backend and PostgreSQL for persistent data.
 - Django REST framework (DRF) for the API, explicitly confirmed by the user.
 - Vue + Tauri 2 for the Windows/macOS desktop application, explicitly confirmed by the user. Vue renders the screens; Tauri supplies the desktop application window/container and packaging.
-- React Native for the mobile POS direction; Vue for the desktop back office. The user clarified this split; the refund approval/execution split, register/device direction, and PDF receipts are confirmed; detailed state models and device/platform acceptance remain under review in [02-feature-specifications.md](02-feature-specifications.md#workflow-drafts-by-client).
+- React Native for mobile POS; Vue + Tauri for desktop back office. Client responsibilities live in document 01 and detailed state/workflow questions in [02-feature-specifications.md](02-feature-specifications.md#remaining-client-specification-questions).
 - Application roles: Owner, Manager, Cashier. Owner/Manager can review audit history; there is no separate read-only reviewer role.
 - Shared-database multi-tenancy is confirmed: a shared hosted Django/DRF service and PostgreSQL database, with one store per business. Also support a business-local installation running the same backend/schema with one tenant on a designated store server. Use explicit tenant keys, same-tenant relationships, server-side scoping, and RLS; no schema-per-tenant package is selected.
 - The user delegated developer-tool selection; choices below are selected for the plan, not installed.
@@ -51,7 +51,7 @@ The earlier “UI approach” question meant how screens are rendered and connec
 - **Locust:** Python-written API load scenarios for the specified 20-reader/five-minute benchmark; report p95 and errors. **PostgreSQL EXPLAIN (ANALYZE, BUFFERS):** inspect query work; **pg_stat_statements:** optional aggregate query evidence where available. Perform measurements against synthetic test/staging data. [Locust documentation](https://docs.locust.io/en/stable/).
 - **GitHub Actions:** proposed checks/build workflow during implementation. Plan lint/type/unit checks, PostgreSQL integration tests, browser workflows, and Windows/macOS build checks. Keep signing credentials in protected CI secrets; deployment/build execution is not authorized now. [GitHub Actions concepts](https://docs.github.com/en/actions/get-started/understand-github-actions).
 
-No Redis, task queue, microservices, or additional analytics backend is needed initially.
+No Redis, task queue, microservices, or additional analytics backend is selected. Review whether the eventual reconciliation/deletion execution design needs background work before adding a runner.
 
 ## Authentication Proposal — Explain and Review Before Selection
 
@@ -116,12 +116,6 @@ Recommended workflow: review docs → authorized implementation → local tests 
 - **Mobile:** if Expo is accepted, use development builds/local native toolchains, with EAS Build/internal distribution as an option. Android emulator/device and iOS simulator testing are proposed within the same learning project. Public app-store submission, paid developer accounts, automatic updates, and signing-service enrollment are not required now. [Expo build workflow](https://docs.expo.dev/develop/development-builds/introduction/).
 - **Automated updates:** unnecessary for the initial learning deliverable; manual demo installation is enough unless the user chooses to learn update signing/delivery explicitly.
 
-## Added Feature Planning: Pricing and Business Deletion
-
-The selected stack remains unchanged. Plan server-authoritative discounts/taxes/promotions/overrides and immutable calculation/authorization snapshots using the existing Django/PostgreSQL architecture. Exact algorithms, precision, and any library need remain undecided; no payment/subscription billing feature is implied.
-
-Plan Owner-initiated tenant deletion, reauthentication, export, access revocation, restricted purge execution/recovery, operational evidence, and backup expiry/restore handling for both hosted and local installations. Decide whether existing synchronous operational tooling suffices before adding a job runner; no queue/dependency is selected now. Ordinary staff APIs retain their isolation and append-only protections.
-
 ## What Remains Open Before Code
 
-Tauri, specific Manager/Owner-authorized cashier refunds, register selection with one active shift-control device, and PDF receipt delivery are confirmed. Resolve the proposed Expo tooling, mobile OS/device acceptance, token-auth design/library, and detailed approval/device-handoff/reconciliation state models and screen behavior. The hosting provider remains undecided, but both hosted multi-tenant and business-local single-tenant demonstrations are required. Select the local-server platform/resources/runtime, LAN endpoint/certificate setup, and responsible administrator. Plan protected transport, private database access, deploy/rollback, startup/restart, health checks, logs, secrets, installation-specific backups, and controlled business onboarding for both modes. Finish architecture/data-dictionary/invariant reviews before treating DBML as final. The earlier “adapt model, then begin migrations” instruction is replaced by the explicit [planning gate](05-architecture-planning.md): model review now, executable migrations only after authorization.
+Resolve Expo tooling, mobile OS/device acceptance, the token-auth library/design, hosted provider, and the local-server OS/resources/runtime and certificate setup. Client approval/device/reconciliation questions belong in document 02; schema gaps belong in document 06. Document 05 assigns component boundaries. The M0 completion gate in [08-milestones.md](08-milestones.md) governs when implementation may begin.

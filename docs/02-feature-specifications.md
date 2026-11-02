@@ -1,6 +1,6 @@
 # Vault Feature Specifications — Planning Workbook
 
-Review position **02 of 07**. Finalize user workflows, screen behavior, validation, failures, and acceptance examples after the scope review. Track this review in [GitHub issue #2](https://github.com/syvonni/Vault/issues/2). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
+Review position **02 of 08**. Finalize user workflows, screen behavior, validation, failures, and acceptance examples after the scope review. Track this review in [GitHub issue #2](https://github.com/syvonni/Vault/issues/2). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: draft workbook, not completed feature specifications. Fill and review every in-scope feature in M0-03–M0-05 before code/setup. The [requirements](01-requirements.md) state required behavior; this document contains the draft client workflows below and will hold the detailed feature specifications and acceptance scenarios. The [schema](06-conceptual-schema.md) must be reviewed against these specifications.
 
@@ -38,7 +38,7 @@ Local cash checkout must work during an internet outage if the store server and 
 
 Status: initial workflow drafts for the user's mobile-POS/desktop-back-office direction. These are review material, not finalized feature specifications or screen designs. Record completion of M0-03–M0-05 in the corresponding GitHub issues only after inputs, errors, acceptance scenarios, and open questions are resolved for each feature.
 
-The requirements are the source for business rules; these steps explain their execution order and client location. If a workflow needs a different business rule, amend its requirement explicitly rather than maintaining contradictory copies.
+The [client responsibilities](01-requirements.md#client-responsibilities) and [stack choices](04-tech-stack.md#confirmed-choices) hold the agreed platform/actor split; the workflow sequences below explain its execution. The requirements are the source for business rules; these steps explain their execution order and client location. If a workflow needs a different business rule, amend its requirement explicitly rather than maintaining contradictory copies.
 
 ### WF-01 — Initial Business and Staff Setup
 
@@ -153,21 +153,13 @@ Receipt viewing plus PDF download/share is confirmed for mobile and accessible d
 
 Every workflow above is confined to the authenticated staff account's business. Display its identity in both clients; filter lookups and validate related IDs before posting. A Manager/Owner's store-wide visibility means their own tenant only. Staff identities cannot belong to or switch between businesses in this scope. Business-specific identifiers can repeat across tenants; canonical email unique within the installation keeps authentication lookup unambiguous. Separate installations have independent accounts and tokens.
 
-Plan authentication as a narrowly scoped credential lookup before tenant context is established; it must expose no business data and must not grant the general API an RLS bypass. Specify how tokens resolve to one account/tenant, how missing/revoked context fails, and how pooled connections and background recovery obtain and clear context. Review that design alongside the auth library choice.
+Specify user-visible tenant/role failures here. Credential lookup, transaction-local tenant context, connection reuse, and background recovery boundaries are designed in [architecture planning](05-architecture-planning.md#tenant-and-identity-boundary), with auth-library selection in document 04.
 
 ## Newly Included Workflows Requiring Specification
 
 Pricing configuration belongs in the desktop back office; mobile checkout must show applied pricing and tax before confirmation. Review discount permissions, supported promotion types, calculation order/rounding/allocation, tax-inclusive versus exclusive treatment, and override authorization/handoff. Preserve the original charged amounts and applied rules for receipts, reports, and full refunds. Existing simple cash-sale examples remain useful with no discount/tax configured; they do not validate the expanded pricing behavior.
 
 Business deletion begins with the business Owner in the desktop back office. Specify identity verification, impact disclosure, export opportunity, active shifts/drafts/processing operations, confirmation, lifecycle/grace/cancellation choices, access revocation, purge/retry outcome, and backup/restore/retention evidence. Decide operator/local-administrator responsibilities without giving normal staff unrestricted database privileges. No deletion period or tax/promotion algorithm is selected by this scope addition.
-
-## Confirmed Client Decisions
-
-- **Desktop application container:** Vue + Tauri for Windows/macOS; Django remains the backend.
-- **Refunds:** cashier mobile execution under their own shift requires specific Manager/Owner approval; record both identities. Direct Manager/Owner own-shift execution is allowed.
-- **Registers/devices:** select an enabled logical register; one operator and one active mobile control session per shift. Same-operator replacement-device resume invalidates old control authority.
-- **Receipts:** on-screen plus PDF download/share; dedicated printer integration remains deferred.
-- **Payment uncertainty:** unknown response means check original outcome; confirmed external payment/refund with definitive server rejection requires Manager/Owner reconciliation, never automatic repeated money movement.
 
 ## Remaining Client Specification Questions
 

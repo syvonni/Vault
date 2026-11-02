@@ -1,6 +1,6 @@
 # Vault POS and Inventory System Requirements
 
-Review position **01 of 07**. Agree on purpose, scope, mobile/desktop responsibilities, roles, and required behavior. Track this review in [GitHub issue #1](https://github.com/syvonni/Vault/issues/1). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
+Review position **01 of 08**. Agree on purpose, scope, mobile/desktop responsibilities, roles, and required behavior. Track this review in [GitHub issue #1](https://github.com/syvonni/Vault/issues/1). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 ## Purpose and Business Problem
 
@@ -54,14 +54,15 @@ These capabilities are outside the current deliverable. Listing them here does n
 | --- | --- |
 | Business structure | Multiple branches/locations within one business, warehouses, and inter-location transfers. |
 | Service administration | Turnkey server installers, a universal host-OS support guarantee, automated installation-to-installation migration, public business signup, subscription billing, plans/quotas, cross-business staff accounts, and a platform-administration UI. Controlled onboarding remains in scope. |
-| Quantities and packaging | Automatic package conversion and fractional measurements. |
+| Quantities and packaging | Product variants, automatic package conversion, and fractional measurements. |
 | Statutory documents | Statutory invoicing and certification. Internal sales receipts do not fulfill this scope. |
+| Business-specific modules | Restaurant tables/modifiers, kitchen workflows, and ingredient workflows. |
 | Inventory operations | Reservations, backorders, recipes, batches, serial tracking, and product bundles. |
 | Payments and credit | Split tender, credit sales, customer invoices, partial payments, and integrated payment terminals. Vault does not process payments or move money through banks/payment networks. |
 | Refunds | Partial refunds, exchanges, and refund cancellation. |
 | Cash management | Other cash-in/cash-out events, petty cash, and bank deposits. |
 | Connectivity | Disconnected per-device posting, cloud/local synchronization, replication, and automatic failover between installations. Internet-independent store-LAN operation is included; it still requires a reachable local server. |
-| Accounting and purchasing | Payroll, supplier payables, purchase orders, expenses, general-ledger accounting, inventory valuation, cost of goods sold, and profit reporting. |
+| Accounting and purchasing | Supplier management/purchasing, payroll, supplier payables, purchase orders, expenses, general-ledger accounting, inventory valuation, cost of goods sold, and profit reporting. |
 
 ## Client Responsibilities
 
@@ -246,47 +247,40 @@ Review [03-database-design-goals.md](03-database-design-goals.md) before approvi
 
 ## Planning Gate and Project Stages
 
-Vault is a learning project. Milestones organize the planning, implementation, and verification work; they do not imply separate product releases. No application code, environment setup, dependency installation, migrations, or deployment begins until the Milestone 0 planning gate in [07-progress-checklist.md](07-progress-checklist.md) is complete and the user explicitly authorizes implementation. Draft documents and a passing DBML parser are not approval.
+Vault is a learning project. Milestones organize the planning, implementation, and verification work; they do not imply separate product releases. No application code, environment setup, dependency installation, migrations, or deployment begins until the Milestone 0 completion gate in [08-milestones.md](08-milestones.md) is complete and the user explicitly authorizes implementation. Draft documents and a passing DBML parser are not approval.
 
-Before implementation, complete [feature specifications](02-feature-specifications.md), [architecture planning](05-architecture-planning.md), the [database design goals](03-database-design-goals.md) review, and the conceptual schema review. Proposed desktop/mobile scope and authentication choices must be resolved there.
+Milestone outcomes and gates live in [08-milestones.md](08-milestones.md); detailed tasks live in [07-progress-checklist.md](07-progress-checklist.md).
 
-## Delivery Milestones
-
-1. **Design and foundation:** Finalize retail workflows and the [DBML schema](06-conceptual-schema.md); implement PostgreSQL migrations, permissions, tenant-aware catalog/setup seeds, baseline constraints, and RLS isolation.
-2. **Core selling and stock:** Implement staff access, catalog, stock receipts/adjustments, shift opening, drafts, cash/noncash checkout, inventory posting, idempotency, and correctness/concurrency tests. Establish atomic audit writing before privileged actions.
-3. **Returns and oversight:** Implement full refunds/restock choices, shift closure/reconciliation, accessible history/receipts/exports, sales/stock reports, audit review, and integrity queries with concurrency tests.
-4. **Usability and operations:** Build the frontend around validated backend flows; benchmark at least 100,000 inventory movements, tune SQL/indexes, verify restore, and document reproducible setup/demo and demonstrate both the shared hosted service and a business-local installation.
+Before implementation, complete [feature specifications](02-feature-specifications.md), [architecture planning](05-architecture-planning.md), the [database design goals](03-database-design-goals.md) review, and the conceptual schema review. Detailed workflows, schema gaps, and remaining authentication choices must be resolved there; the client responsibility split is already agreed.
 
 ## Completion Criteria
 
-* [ ] A controlled setup creates two independent businesses and their first Owners; each Owner provisions only their own staff/catalog/registers without public role escalation.
+These define product acceptance, not a progress checklist. Record verification in the relevant GitHub implementation issues.
 
-* [ ] Businesses can reuse SKUs/register codes/receipt numbers while cross-business API access, foreign-key linking, reports/exports, and runtime-role database access remain isolated.
+* A controlled setup creates two independent businesses and their first Owners; each Owner provisions only their own staff/catalog/registers without public role escalation.
 
-* [ ] Mobile and desktop demonstrate the same feature flows against both hosted and business-local APIs with the signed-in business clearly displayed; installation-specific deployment, startup/restart, and recovery evidence is recorded.
+* Businesses can reuse SKUs/register codes/receipt numbers while cross-business API access, foreign-key linking, reports/exports, and runtime-role database access remain isolated.
 
-* [ ] Local cash selling continues with internet disconnected while the server/LAN is available; server/LAN loss blocks posting safely. Switching independent installations cannot reuse credentials/tokens or carry cached data/pending operations across servers.
+* Mobile and desktop demonstrate the same feature flows against both hosted and business-local APIs with the signed-in business clearly displayed; installation-specific deployment, startup/restart, and recovery evidence is recorded.
 
-* [ ] Cashier opens a shift, builds a cart, and completes cash/manual noncash sales with immutable receipts and accurate stock.
+* Local cash selling continues with internet disconnected while the server/LAN is available; server/LAN loss blocks posting safely. Switching independent installations cannot reuse credentials/tokens or carry cached data/pending operations across servers.
 
-* [ ] Two cashiers competing for the last item cannot both sell it; retries cannot duplicate a sale/payment.
+* Cashier opens a shift, builds a cart, and completes cash/manual noncash sales with immutable receipts and accurate stock.
 
-* [ ] Manager records one full refund with line-specific restock choices and correct current-shift cash impact.
+* Two cashiers competing for the last item cannot both sell it; retries cannot duplicate a sale/payment.
 
-* [ ] A shift closes with computed expected cash, counted cash, variance, and explanation, and rejects subsequent posting.
+* A cashier executes one specifically Manager/Owner-approved full refund with line-specific restock choices, separate approval/execution attribution, and correct executing-shift cash impact; a Manager/Owner may execute directly under their own shift.
 
-* [ ] Reports and integrity queries match known fixtures and enforce role visibility.
+* A shift closes with computed expected cash, counted cash, variance, and explanation, and rejects subsequent posting.
 
-* [ ] Posted records and audit history resist unauthorized edits/deletion; only the reviewed Owner-initiated business deletion lifecycle can execute its permitted tenant-scoped removal.
+* Reports and integrity queries match known fixtures and enforce role visibility.
 
-* [ ] Discounts, supported promotions, taxes, and authorized price overrides yield the reviewed payable totals, immutable receipts, original-paid-value full refunds, and separate sales/discount/tax reporting.
+* Posted records and audit history resist unauthorized edits/deletion; only the reviewed Owner-initiated business deletion lifecycle can execute its permitted tenant-scoped removal.
 
-* [ ] Business deletion verifies Owner identity/confirmation, offers export, handles active work and sessions safely, isolates other tenants, and reports live-data and backup/retention outcomes in both deployment modes.
+* Discounts, supported promotions, taxes, and authorized price overrides yield the reviewed payable totals, immutable receipts, original-paid-value full refunds, and separate sales/discount/tax reporting.
 
-* [ ] The documented performance benchmark and backup/restore verification run successfully.
+* Business deletion verifies Owner identity/confirmation, offers export, handles active work and sessions safely, isolates other tenants, and reports live-data and backup/retention outcomes in both deployment modes.
 
-* [ ] A fresh checkout can reproduce setup, tests, benchmark, and the hardware-store demo from the operating instructions in document 04.
+* The documented performance benchmark and backup/restore verification run successfully.
 
-## Outside the Learning-Project Scope
-
-Add features only after a demonstrated workflow requires them: product variants, fractional units/package conversion, suppliers/purchasing, credit sales, split payments, integrated payments, multi-location stock, and restaurant tables/modifiers/kitchen/ingredient workflows. These features are outside the current project scope; listing them is not a promise of another release.
+* A fresh checkout can reproduce setup, tests, benchmark, and the hardware-store demo from the operating instructions in document 04.

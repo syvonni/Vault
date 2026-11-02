@@ -1,6 +1,6 @@
 # Vault Architecture Planning
 
-Review position **05 of 07**. Review component boundaries, data flows, authentication, and where business rules are enforced. Track this review in [GitHub issue #5](https://github.com/syvonni/Vault/issues/5). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
+Review position **05 of 08**. Review component boundaries, data flows, authentication, and where business rules are enforced. Track this review in [GitHub issue #5](https://github.com/syvonni/Vault/issues/5). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: draft planning outline. This document is the explicit architecture deliverable for M0-06–M0-08 and M0-14. It authorizes no app scaffolding, dependency installation, configuration, migration, CI, container, or deployment work.
 
@@ -12,7 +12,7 @@ Confirmed technology: Python/Django, PostgreSQL, Django REST framework, Vue desk
 
 ## Working Client Split and Component Responsibilities
 
-The user has proposed mobile POS and desktop back office. The draft step-by-step flows are in [02-feature-specifications.md](02-feature-specifications.md#workflow-drafts-by-client); they replace the earlier desktop-selling/mobile-summary proposal. Both clients use the same Django API and authoritative database. This split remains subject to the workflow review gate.
+The agreed client/actor responsibilities are in [requirements](01-requirements.md#client-responsibilities); execution steps are in [feature specifications](02-feature-specifications.md#workflow-drafts-by-client). This section assigns enforcement and integration responsibilities to components.
 
 - **Desktop client:** Vue supplies the Owner/Manager back office: inventory/catalog/price management, staff/settings administration, metrics/reports, shift review, integrity checks, and audit history. The confirmed Tauri desktop container provides a desktop window/native integration. Inventory posting still uses server-authorized actions and request keys.
 - **Mobile client:** React Native provides POS: operator login, register/shift opening, product lookup/cart, payment recording, receipts, own history, draft void, and shift closure. Cashier refund execution on mobile requires specific separately authenticated Manager/Owner approval in the desktop back office. Record approver separately from executing shift/operator; a Manager/Owner operating their own mobile shift can execute directly. One active mobile control session operates each shift, including explicit replacement-device handoff. Expo and device/platform details remain open. Share API contracts/permissions, not assumed UI components.
@@ -35,13 +35,7 @@ The user has proposed mobile POS and desktop back office. The draft step-by-step
 
 ## Confirmed Client Workflow Boundaries
 
-Tauri packages Vue for Windows/macOS. Mobile submits sales/refunds to the installation’s API; desktop fetches those same records and provides authenticated Manager/Owner refund approval. Both use one authoritative server/database, including in local mode. This included client/server exchange is distinct from excluded local/cloud database replication.
-
-Refund approval binds a specific tenant/sale/amount/restock decisions/reason/executor/shift/request version and records approver separately from execution. Changes invalidate approval; role/revocation/expiry and duplicate-execution claims must be designed before posting. Cash impact belongs to the executing operator's current shift. Plan restricted receipt lookup for cashier-initiated returns without expanding ordinary history permissions.
-
-A logical register represents a checkout station/drawer. One active mobile control session may operate its shift. Explicit same-operator resume on a replacement device invalidates the previous control session; posting rechecks authority. State/race details still require modeling.
-
-Receipts are on-screen and PDF download/share with tenant/role checks. Missing response uses existing operation lookup; definitive posting rejection after actual external money movement requires a Manager/Owner reconciliation case with evidence. Specify safe recovery/compensation, duplicate-external-action prevention, and shift-closure handling; do not treat a precheck or approval as a guarantee of database/provider atomicity.
+Apply the actor/client split from document 01 and the workflow sequences in document 02. Architecture review must assign enforcement for request-bound refund approvals and separate executor attribution, active-device shift control, permission-checked PDF receipts, and external-money reconciliation. These server/database boundaries are still design work; repeating the agreed UI steps here would not resolve them.
 
 ## Future Communication and Concurrency Review
 
@@ -56,9 +50,9 @@ The same Django services and tenant-aware PostgreSQL schema support both topolog
 
 Each installation owns one authoritative database. No synchronization between independent local/cloud databases, replication, automatic failover, cross-installation identity service, or disconnected client posting is included. The tenant key and RLS stay enabled in local mode. Internet-independent local operation still depends on the local server/LAN and does not guarantee external payment-provider availability.
 
-Define deployment-specific secrets, API endpoints, protected transport/certificate trust, firewall rules, persistent storage, production application-server process, startup/restart, logs/health checks, upgrades/rollback, onboarding, and backup ownership. Choose a supported local-server host OS/runtime/resource baseline separately from desktop client OS targets. The local administrator is an installation responsibility, not an additional application role.
+Use the [supported deployment modes](04-tech-stack.md#supported-deployment-modes) in document 04 for environment configuration, operator ownership, platform selection, installation, startup, updates, and recovery procedures. Here, review API/database trust boundaries and failure effects; do not maintain a second runbook.
 
-Clients may be configured for one installation at a time. Endpoint changes invalidate old client credentials/cache and require authentication on the destination; never replay pending operations to a different installation. Resolve active drafts/shifts and uncertain outcomes on their originating server. Automated data migration between installations is deferred.
+Installation-endpoint behavior and pending-operation handoff are specified in document 02; enforce that work against its originating server and do not implement cross-installation replication.
 
 ## Tenant and Identity Boundary
 
@@ -76,9 +70,7 @@ Hosted backups contain all hosted tenants and belong to the hosted operator’s 
 
 ## Added Pricing and Deletion Boundaries — Pending Design
 
-POS-FR-32–POS-FR-35 require a reviewed server-side pricing flow across configuration, cart preview/confirmation, override authorization, transactional completion, immutable receipts, full refunds, and reporting. Define calculation/rounding/allocation and concurrent rule-change behavior before selecting the schema or final formulas.
-
-POS-FR-36 requires a tenant-deletion state/permission model distinct from normal staff administration. Plan Owner verification/confirmation, export, pending operations/open shifts, access revocation, any cancellation window, controlled purge/retry/status handling, and backup/restore exclusions or suppression evidence. Define what minimal operational evidence remains, who may access it, and why. Hosted execution cannot affect other tenants; local execution needs documented installation-administrator duties. Exact lifecycle and execution mechanism remain undecided.
+Use POS-FR-32–POS-FR-36 and FS-12–FS-13 for feature behavior. Architecture review assigns server-authoritative pricing and approval checks, atomic snapshot writes, separate restricted tenant-purge privileges, execution/recovery boundaries, and backup/restore evidence ownership. The schema document owns the corresponding model gaps; this section does not duplicate the feature checklist or choose the unresolved algorithms/lifecycles.
 
 ## Needed Planning Artifacts
 
@@ -97,4 +89,4 @@ Adapting the model means deciding on paper how staff identities, password hashes
 
 ## Acceptance Gate
 
-M0 is complete only when the required artifacts are reviewed alongside requirements, feature specifications, goals, and DBML; unresolved behavior is settled; and the user explicitly authorizes implementation. Keep the schema marked draft until that point. One project can still have package versions, Git history, database migrations, and a cart edit counter without planning additional product releases.
+Review the architecture artifacts with the requirements, workflows, database goals, and DBML. The canonical planning completion gate and implementation authorization rule are in [08-milestones.md](08-milestones.md). This outline does not by itself complete that gate.

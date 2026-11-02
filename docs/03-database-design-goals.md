@@ -1,6 +1,6 @@
 # Vault Database Design Goals
 
-Review position **03 of 07**. Agree on measurable database quality and recovery goals before finalizing the design. Track this review in [GitHub issue #3](https://github.com/syvonni/Vault/issues/3). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
+Review position **03 of 08**. Agree on measurable database quality and recovery goals before finalizing the design. Track this review in [GitHub issue #3](https://github.com/syvonni/Vault/issues/3). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: planning draft for Vault as a learning project. These are design goals with review/verification evidence, not claims that the system already meets them. Review them in checklist M0-09–M0-11 before implementation.
 
@@ -26,7 +26,7 @@ Evidence: at least 100,000 valid inventory movements, multiple concurrent regist
 
 Use pagination, selective indexes, appropriate joins/aggregates, and measured plans. A faster query must still return correct totals and enforce permissions. Indexes have storage/write costs. Derived stock is authoritative; add caches only after measuring a bottleneck.
 
-Evidence: proposed history p95 at most 500 ms for five minutes with 20 concurrent readers, pages up to 100 rows, and at least 100,000 inventory movements. Record hardware/cache conditions/errors and before/after SQL plans; benchmark reporting too without inventing unmeasured response-time claims. Links: POS-NFR-04, POS-NFR-08.
+Evidence: use the benchmark parameters in POS-NFR-04 of [requirements](01-requirements.md#non-functional-requirements). Record hardware/cache conditions/errors and before/after SQL plans; benchmark reporting too without inventing unmeasured response-time claims. Links: POS-NFR-04, POS-NFR-08.
 
 ## 5. Maintainability and Reproducibility
 
@@ -78,17 +78,9 @@ Review the tenant table, one-settings-row-per-tenant rule, immutable tenant owne
 
 RLS is defense in depth alongside role/ownership checks, not a replacement for them. PostgreSQL superusers/BYPASSRLS bypass policies, and table owners normally bypass them; the runtime role must have neither property. Review USING/WITH CHECK policies and FORCE ROW LEVEL SECURITY, least-privilege routines, and tenant-table policies before coding. Sources: [PostgreSQL RLS](https://www.postgresql.org/docs/17/ddl-rowsecurity.html), [composite foreign keys](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-FK).
 
-## Pricing Snapshots and Deletion Lifecycle — Review Required
+## Schema Review Dependencies
 
-POS-FR-32–POS-FR-36 expand the current design. Specify pricing calculation order, precision/rounding, allocations, override authorization, discount/promotion/tax snapshots, original-paid-value refunds, and tax-aware report reconciliation before approving the schema. The existing simple line-total check is not sufficient for these features.
-
-Ordinary append-only history remains protected. Owner-initiated whole-business deletion needs a separately privileged, tenant-scoped lifecycle with verification, safe retries, retained-evidence policy, and backup/restore treatment. A hosted purge must leave every other tenant unchanged. Local deletion must explain the administrator’s responsibilities for database files and backup copies. Review any retention exceptions explicitly; do not claim that deletion removes independent copies immediately. The old deletion restrictions must be reconciled with this lifecycle before migrations are approved.
-
-## Refund Approval, Device Control, and Reconciliation — Review Required
-
-The confirmed workflow separates refund approver from executing cashier/shift, permits direct Manager/Owner own-shift execution, binds approval to exact request content, and invalidates stale approval. Review same-tenant attribution, approval/claim validity and consumption, restricted refund lookup, duplicate physical/provider payouts, and races with shift close or role changes.
-
-One active mobile control session operates each shift; replacement-device resume invalidates prior authority under server checks. Model this separately from staff session history. External payment/refund followed by rejected posting requires a protected reconciliation lifecycle with original references, actors, amounts, and resolution evidence. Review cash effects and closure rules; do not assert a rollback reverses external money movement.
+The schema document owns the detailed pricing/deletion and client-workflow model gaps. Review those gaps against these quality goals: immutable and reconcilable pricing snapshots; controlled tenant deletion without ordinary history mutation; separate refund approver/executor; active-device authority; and recoverable external-money reconciliation. Do not copy their field/state design here or approve a baseline model that still has unresolved gaps.
 
 ## Review Gate
 

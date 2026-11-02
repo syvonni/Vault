@@ -1,25 +1,12 @@
 # Vault POS Implementation Checklist
 
+Review position **07 of 08**. Review task coverage and sparse commit guidance, then the milestone outcomes/gates in document 08. Track both in [GitHub issue #7](https://github.com/syvonni/Vault/issues/7). This remains a draft; implementation is not authorized.
+
 ## How Tracking Works
 
-This document keeps the **full roadmap and its checklists as a reference copy**. [GitHub Projects](https://github.com/users/syvonni/projects/5) and its issues hold the active task checklists, progress, and completion evidence. Update checkboxes and statuses there; you do not need to mirror them here. Reference checkmarks below may differ from current GitHub progress. Review issues 01–07 use each document’s exact section headings and order with section links: read the document section, then record its review in the matching issue. Focused supporting issues link the same named sections and track only their specific task.
+This document keeps the **full roadmap and its checklists as a reference copy**. [GitHub Projects](https://github.com/users/syvonni/projects/5) and its issues hold the active task checklists, progress, and completion evidence. Update checkboxes and statuses there; you do not need to mirror them here. Reference checkmarks below may differ from current GitHub progress. Review issues use compact checkboxes matching document section names and order. Read the document, then record review progress in its issue; focused issues track only their specific task.
 
-Documents 01–06 hold the requirements and design decisions. Update this roadmap when scope or planned work changes, while keeping day-to-day progress in GitHub. Create future implementation issues from the relevant roadmap tasks when that work approaches; the complete roadmap can stay here without creating every issue now.
-
-## Roadmap Review Reference
-
-The following checklist describes the roadmap review. Record its actual completion in [issue #7](https://github.com/syvonni/Vault/issues/7).
-
-- [ ] Use this document to reference the matching M0 tasks while tracking review progress in GitHub issues for documents 01–06.
-- [ ] Complete M0 issue checklists only when their review evidence exists; keep implementation issues pending during planning.
-- [ ] Confirm every requirement has a reviewed specification, schema mapping, acceptance scenario, and implementation task.
-- [ ] Reconcile the milestones with the approved mobile-POS/desktop-back-office scope and chosen tools.
-- [ ] Resolve remaining planning questions and complete the Milestone 0 review gate.
-- [ ] Record explicit implementation authorization only if the user later gives it; completing documentation alone does not authorize building.
-
-Review position **07 of 07**. Use this as a roadmap reference throughout; after reviewing 01–06, reconcile the tasks and confirm the planning gate. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
-
-Complete Milestone 0 first, then follow the four implementation milestones in [01-requirements.md](01-requirements.md), using the [DBML schema](06-conceptual-schema.md). This replaces the simulated-wallet checklist; old task IDs and their meanings are retired. Implementation is not authorized. Implementation remains pending in GitHub; completing planning tasks there requires reviewed evidence, not just a document existing.
+Documents 01–06 hold the requirements and design decisions; document 08 owns milestone outcomes and completion gates. Update this roadmap when scope or planned work changes, while keeping day-to-day progress in GitHub. Create future implementation issues from the relevant roadmap tasks when that work approaches; the complete roadmap can stay here without creating every issue now.
 
 ## Document Review Order
 
@@ -31,21 +18,18 @@ Complete Milestone 0 first, then follow the four implementation milestones in [0
 4. [04 — Tech stack](04-tech-stack.md): settle the remaining technology, authentication, local-running, and delivery choices that support those workflows.
 5. [05 — Architecture planning](05-architecture-planning.md): decide how mobile, desktop, API, application services, and PostgreSQL fit together and enforce the rules.
 6. [06 — Conceptual schema](06-conceptual-schema.md): review tables, fields, relationships, and constraints against the preceding decisions.
-7. [07 — Progress checklist](07-progress-checklist.md): reconcile the plan with its tasks and confirm the planning gate before any implementation.
+7. [07 — Progress checklist](07-progress-checklist.md): review detailed task coverage and commit guidance.
+8. [08 — Milestones](08-milestones.md): review the outcome and completion gate for each stage; this shares review issue #7 with the roadmap.
 
 Keep **07 open as a roadmap reference throughout**, and use GitHub issues to track progress. Its existing task IDs are stable; the filename prefixes give the document review order. If a later review exposes a gap, revisit only the affected earlier decisions.
 
 At each step, resolve the document's open questions, record agreed changes, and explicitly confirm that review before moving on. Draft checkmarks mean a document exists, not that you have approved it. After all planning reviews, coding/setup still requires your explicit authorization.
 
-For now, open **01** and review only the purpose, scope, client responsibilities, and roles. We can handle its functional requirements next, before moving to **02**. Runtime setup, test, benchmark, and recovery commands will be added only when implementation is authorized and those commands exist.
+Start with **01**; use GitHub for the current review position. Runtime commands are added to document 04 only after implementation is authorized and the commands exist.
 
 ## What You Are Building
 
-The deliverable supports both a shared hosted service for isolated businesses and a business-local installation with one tenant on a designated store server. Both use the same backend/schema, with one physical store per business and whole-number quantities. The initial workflows target hardware stores and similar retailers. The shared retail core is products, stock, sales, recorded payments, internal receipts, full refunds, cashier shifts, and operational reports. Multiple registers may operate concurrently.
-
-The working platform split is mobile POS and desktop Owner/Manager back office; see the [workflow drafts](02-feature-specifications.md#workflow-drafts-by-client). A useful first demonstration is: receive 10 hammers, open a shift, sell two hammers with cash and change, verify stock and expected drawer cash, record a manager-authorized full refund with restock choices, and close the shifts with counted cash and variance.
-
-You are not implementing wallets, bank transfers, payment processing, payroll, supplier debt, full accounting, restaurant kitchens, or profit reporting. Keep future extensions outside the completion gate until the requirements change deliberately.
+Use [requirements](01-requirements.md) for the purpose, scope, client responsibilities, roles, and exclusions, and [feature specifications](02-feature-specifications.md) for workflow steps and acceptance scenarios. Milestone outcomes and gates live only in [08-milestones.md](08-milestones.md); this document retains the complete task roadmap.
 
 ## How to Work Through This Guide
 
@@ -55,14 +39,6 @@ You are not implementing wallets, bank transfers, payment processing, payroll, s
 - Privileged actions need atomic audit writing from Milestone 2 onward. Audit viewing/reporting comes in Milestone 3.
 - Milestone 2 establishes sale/stock/shift-opening primitives. Milestone 3 adds full refunds and closure; do not claim those workflows work before then.
 - When changing scope, update the requirements first, then synchronize the schema and this checklist.
-
-Documentation reference snapshot (drafted does not mean reviewed or approved; see GitHub for current status):
-
-- [x] POS purpose, scope, roles, requirements, and milestones are documented.
-- [x] Proposed POS entities and relationships are documented in DBML.
-- [ ] Feature specifications, architecture, database goals, and conceptual schema have completed Milestone 0 review.
-- [ ] The user has explicitly authorized implementation after planning review.
-- [ ] Runtime application, migrations, tests, and setup commands are implemented.
 
 ## Git Commit Checkpoints — Keep It Sparse
 
@@ -80,8 +56,6 @@ Before each commit, review the diff and run the checks relevant to that checkpoi
 A **commit** saves a local Git checkpoint; a **push** publishes commits to GitHub. Treat pushing as a separate action. Record C1–C6 completion on the relevant GitHub issue only after the corresponding commit actually exists; the boxes here are reference reminders. Keep the repository README empty.
 
 ## Milestone 0 — Feature Specifications, Architecture, and Design Review
-
-**Outcome:** A coherent, reviewed plan for Vault as a learning project. This milestone produces documentation only. Do not create app scaffolding, environments, dependencies, migration/configuration files, CI workflows, containers, or deployments during planning.
 
 - [ ] **M0-01:** Finalize the problem statement and single-project scope, including mobile POS, desktop inventory/admin/reporting/audit workflows, refund handoff, device/register binding, and supported operating systems; list explicit exclusions without promising a later product release.
 - [ ] **M0-02:** Review Owner/Manager/Cashier permissions, first-owner setup, staff provisioning, credential delivery/reset, session revocation, and who may see or change each record.
@@ -129,13 +103,7 @@ These are future planning tasks, not completed designs or permission to build. C
 - [ ] **M0-29:** Specify logical register selection and one active mobile shift-control session, same-operator replacement-device resume/old-authority invalidation, and related race cases. Specify PDF receipt viewing/download/share and Tauri Windows/macOS packaging acceptance; Tauri itself is confirmed.
 - [ ] **M0-30:** Specify reconciliation-required handling when external money movement occurred but posting was rejected: original reference/amount/actors/outcome evidence, Manager/Owner resolution, safe retry/completion/compensation, duplicate-external-action prevention, and cash/shift closure handling. Unknown responses first use existing outcome lookup. Update schema and role/tenant acceptance cases.
 
-**Planning completion gate:** Pricing/deletion and confirmed client workflow additions (M0-26–M0-30), feature specifications, screen flows, architecture, database goals, and conceptual schema are reviewed together; outstanding scope/design decisions are resolved; the user explicitly authorizes implementation. A generated document or valid DBML syntax alone cannot satisfy this gate. The current documents are drafts, so this gate is open.
-
 ## Milestone 1 — Design and Database Foundation
-
-**Outcome:** A clean database can be created with the POS schema, initial configuration, staff roles, and synthetic reference data.
-
-**Supports:** POS-FR-01–POS-FR-31 foundations; POS-NFR-01, POS-NFR-03.
 
 ### 1A. Decide and prepare
 
@@ -173,13 +141,7 @@ These are future planning tasks, not completed designs or permission to build. C
 
 - [ ] **M1-23:** After M0 approval and explicit implementation authorization, implement the reviewed pricing/deletion schema changes, snapshots, keys/checks/privileges, and synthetic fixtures. Replace baseline-only pricing checks with the approved model; verify ordinary append-only protections and restricted tenant deletion remain distinct.
 
-**Completion gate:** Repeatable setup creates the POS database, constraints demonstrably reject invalid rows, and schema relationships match the documentation, including tenant-scoped keys and runtime-role isolation. No selling workflow is marked complete yet.
-
 ## Milestone 2 — Staff Access, Inventory, Shifts, and Checkout
-
-**Outcome:** A cashier can complete cash/manual noncash sales without duplicate posting or overselling; managers can maintain the catalog and receive/correct stock.
-
-**Requirements:** POS-FR-01–POS-FR-17, POS-FR-21, POS-FR-22, POS-FR-28–POS-FR-31; POS-NFR-01–POS-NFR-03, POS-NFR-05.
 
 ### 2A. Staff and authorized writes
 
@@ -227,13 +189,7 @@ These are future planning tasks, not completed designs or permission to build. C
 
 - [ ] **M2-30:** Implement and verify approved discount/promotion/tax computation and override authorization with server-calculated previews, stale-approval/rule-change handling, safe retry/concurrency, immutable snapshots, and permission/rounding/limit fixtures.
 
-**Completion gate:** Backend tests demonstrate valid cash/noncash selling, accurate stock, immutable receipts, authorized catalog/stock actions, idempotency, rollback, tenant isolation/context lifecycle, and last-item concurrency protection. Refund and close-shift completion are still pending Milestone 3.
-
 ## Milestone 3 — Refunds, Cash Reconciliation, Reports, and Audit
-
-**Outcome:** Staff can handle returns and finish shifts; owners can inspect operational reports and detect inconsistent records.
-
-**Requirements:** POS-FR-16, POS-FR-18–POS-FR-20, POS-FR-22–POS-FR-31; POS-NFR-01–POS-NFR-03, POS-NFR-05.
 
 ### 3A. Full refunds
 
@@ -274,13 +230,7 @@ These are future planning tasks, not completed designs or permission to build. C
 
 - [ ] **M3-23:** Verify full refunds return the original paid amount after discounts/promotions/tax and later rule changes; receipts/exports/reports reconcile base amounts, discounts, tax, final paid totals, and refunded components under the approved definitions.
 
-**Completion gate:** Full refunds, restock choices, cash closure, receipt/history visibility, reports, and integrity queries match known fixtures and pass concurrency/rollback and cross-tenant isolation tests. Original sales/shifts remain unchanged by later returns.
-
 ## Milestone 4 — Frontend, Performance, Recovery, and Delivery
-
-**Outcome:** A usable POS demonstrates the verified workflows, handles retries clearly, meets a measured performance target, and can be restored/reproduced.
-
-**Requirements:** All POS functional requirements in the UI; POS-NFR-04, POS-NFR-06–POS-NFR-08 and final regression checks.
 
 ### 4A. Build the operator interface
 
@@ -324,12 +274,6 @@ These are future planning tasks, not completed designs or permission to build. C
 
 - [ ] **M4-28:** Implement and demonstrate the approved Owner-initiated business deletion workflow in hosted/local modes, including verification/export/confirmation, active-work checks, access revocation, restricted purge/recovery/status, retention/backup/restore evidence, and proof that other tenants remain unchanged.
 
-**Completion gate:** Required role flows work through the frontend, correctness/concurrency checks pass, benchmark results meet the agreed target or document an explicitly revised target, restore verification succeeds, a fresh checkout reproduces the demo, two businesses demonstrate isolated mobile/desktop operation on the hosted service, and one business demonstrates LAN operation, internet-outage cash selling, safe server/LAN failure handling, restart persistence, and recovery on the local-server installation. Approved pricing flows and the business-deletion demonstration also pass their reviewed acceptance cases.
-
 ## Start Here
 
 Start in [01 — Requirements](01-requirements.md), with purpose, scope, client responsibilities, and roles (M0-01–M0-02). Follow the numbered review order while tracking the relevant M0 items in GitHub, then complete the planning gate before any implementation. The next executable setup task after explicit implementation authorization will be M1-01. Your first end-to-end implementation target is a stock receipt and cash sale with correct change and inventory—not a dashboard.
-
-## Deferred Work
-
-Restaurant tables/modifiers/kitchen/ingredient workflows; fractional units/package conversion; integrated payments; split tender/credit/partial payments; partial refunds/exchanges; suppliers/purchasing/payables; expenses/payroll/full accounting/profit; statutory invoicing/certification; per-device disconnected posting; cloud/local synchronization/replication/automatic failover; automated business transfer/merge tooling; multiple locations within one business; public signup/subscription billing; cross-business account memberships/switching; selective tenant restore tooling; and emergency shift takeover remain outside this learning project.
