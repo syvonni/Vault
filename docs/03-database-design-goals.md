@@ -12,7 +12,7 @@ Check each item after reviewing it and resolving its questions. These track your
 - [ ] Review backup schedule/retention, off-host protection, recovery-point/recovery-time targets, restore checks, and outage procedures.
 - [ ] Record accepted targets/limitations and confirm this goals review is complete before moving to 04.
 
-Review position **03 of 07**. Agree on measurable database quality and recovery goals before finalizing the design. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **03 of 07**. Agree on measurable database quality and recovery goals before finalizing the design. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: planning draft for the single learning-project deliverable. These are design goals with review/verification evidence, not claims that the system already meets them. Review them in checklist M0-09–M0-11 before implementation.
 

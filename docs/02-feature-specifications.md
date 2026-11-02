@@ -13,7 +13,7 @@ Check each item after reviewing it and resolving its questions. These track your
 - [ ] Complete the specification template for each feature with inputs, screen steps, validation, failures/retries, acceptance examples, and requirement/schema links.
 - [ ] Record the agreed changes and confirm the workflows/specifications are complete before moving to 03.
 
-Review position **02 of 07**. Finalize user workflows, screen behavior, validation, failures, and acceptance examples after the scope review. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **02 of 07**. Finalize user workflows, screen behavior, validation, failures, and acceptance examples after the scope review. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: draft workbook, not completed feature specifications. Fill and review every in-scope feature in M0-03–M0-05 before code/setup. The [requirements](01-requirements.md) state required behavior; this document contains the draft client workflows below and will hold the detailed feature specifications and acceptance scenarios. The [schema](06-conceptual-schema.md) must be reviewed against these specifications.
 

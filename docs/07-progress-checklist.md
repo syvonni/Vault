@@ -11,9 +11,27 @@ Check each item after reviewing it and resolving its questions. These track your
 - [ ] Resolve remaining planning questions and complete the Milestone 0 review gate.
 - [ ] Record explicit implementation authorization only if the user later gives it; completing documentation alone does not authorize building.
 
-Review position **07 of 07**. Use this as a tracker throughout; after reviewing 01–06, reconcile the tasks and confirm the planning gate. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **07 of 07**. Use this as a tracker throughout; after reviewing 01–06, reconcile the tasks and confirm the planning gate. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Complete Milestone 0 first, then follow the four implementation milestones in [01-requirements.md](01-requirements.md), using the [DBML schema](06-conceptual-schema.md). This replaces the simulated-wallet checklist; old task IDs and their meanings are retired. Implementation is not authorized. All implementation tasks remain unchecked; planning checkmarks require reviewed evidence, not just a document existing.
+
+## Document Review Order
+
+**Current step: 01 — Requirements.** Review one document at a time; you do not need to finalize all of them at once. Every document is still a draft, and implementation remains unauthorized.
+
+1. [01 — Requirements](01-requirements.md): decide what Vault does, who uses it, the mobile-POS/desktop-back-office split, and what is out of scope.
+2. [02 — Feature specifications and workflows](02-feature-specifications.md): walk through what each person does, screen steps, validation, failures, retries, and acceptance examples.
+3. [03 — Database design goals](03-database-design-goals.md): agree on integrity, performance, security, maintainability, and backup/recovery expectations.
+4. [04 — Tech stack](04-tech-stack.md): settle the remaining technology, authentication, local-running, and delivery choices that support those workflows.
+5. [05 — Architecture planning](05-architecture-planning.md): decide how mobile, desktop, API, application services, and PostgreSQL fit together and enforce the rules.
+6. [06 — Conceptual schema](06-conceptual-schema.md): review tables, fields, relationships, and constraints against the preceding decisions.
+7. [07 — Progress checklist](07-progress-checklist.md): reconcile the plan with its tasks and confirm the planning gate before any implementation.
+
+Keep **07 open as a tracker throughout**, rather than waiting until the end to use it. Its existing task IDs are stable; the filename prefixes give the document review order. If a later review exposes a gap, revisit only the affected earlier decisions.
+
+At each step, resolve the document's open questions, record agreed changes, and explicitly confirm that review before moving on. Draft checkmarks mean a document exists, not that you have approved it. After all planning reviews, coding/setup still requires your explicit authorization.
+
+For now, open **01** and review only the purpose, scope, client responsibilities, and roles. We can handle its functional requirements next, before moving to **02**. Runtime setup, test, benchmark, and recovery commands will be added only when implementation is authorized and those commands exist.
 
 ## What You Are Building
 
@@ -25,7 +43,7 @@ You are not implementing wallets, bank transfers, payment processing, payroll, s
 
 ## How to Work Through This Guide
 
-- During planning, follow the [numbered document review order](../README.md#review-order--start-here), using M0 task IDs as stable references rather than a strict reading sequence. After the planning gate and explicit implementation authorization, work through implementation milestones in order. Check each task only with the corresponding reviewed document or implementation/verification evidence.
+- During planning, follow the [numbered document review order](07-progress-checklist.md#document-review-order), using M0 task IDs as stable references rather than a strict reading sequence. After the planning gate and explicit implementation authorization, work through implementation milestones in order. Check each task only with the corresponding reviewed document or implementation/verification evidence.
 - Complete the remaining stack decisions in M1-01; Python, Django, PostgreSQL, DRF, and Vue are selected in [04-tech-stack.md](04-tech-stack.md). The working split is Vue desktop back office and React Native mobile POS; shell/tooling, detailed workflows, refund handoff, and OS acceptance remain under review.
 - Validate backend flows through SQL/API before their final screens. Drafting the schema does not mean the operations are implemented.
 - Privileged actions need atomic audit writing from Milestone 2 onward. Audit viewing/reporting comes in Milestone 3.
@@ -219,8 +237,8 @@ Current documentation status (drafted does not mean reviewed or approved):
 - [ ] **M4-18:** Run the complete authorization/integration/concurrency suite from a clean test database and repeat affected benchmarks after any relevant changes.
 - [ ] **M4-19:** Demonstrate stock receipt → cashier shift → two-item cash sale with change → receipt/retry → manager-shift full refund with restock choices → cash reconciliation/closure → report review.
 - [ ] **M4-20:** Demonstrate manual noncash recording, insufficient stock rejection, two cashiers racing for the last unit, duplicate checkout prevention, failed posting recovery, and denied cashier refunds/staff administration.
-- [ ] **M4-21:** Update the README with actual prerequisites/setup, migrations/seeds, first-owner bootstrap, app startup, tests, benchmark, demo, and backup/restore commands once implemented.
-- [ ] **M4-22:** Reproduce the project from a fresh checkout using only the README. Check each requirements completion criterion with evidence; record any unmet target or deliberately revised scope.
+- [ ] **M4-21:** Update the operating instructions in document 04 with actual prerequisites/setup, migrations/seeds, first-owner bootstrap, app startup, tests, benchmark, demo, and backup/restore commands once implemented. Keep the repository README empty unless the user explicitly changes that preference.
+- [ ] **M4-22:** Reproduce the project from a fresh checkout using the operating instructions in document 04. Check each requirements completion criterion with evidence; record any unmet target or deliberately revised scope.
 
 **Completion gate:** Required role flows work through the frontend, correctness/concurrency checks pass, benchmark results meet the agreed target or document an explicitly revised target, restore verification succeeds, and a fresh checkout reproduces the demo.
 

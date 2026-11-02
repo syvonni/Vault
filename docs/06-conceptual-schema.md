@@ -13,7 +13,7 @@ Check each item after reviewing it and resolving its questions. These track your
 - [ ] Complete the data dictionary and review candidate indexes against expected query patterns.
 - [ ] Resolve schema questions and confirm it matches documents 01–05; parser success alone does not finalize the design.
 
-Review position **06 of 07**. Review tables, fields, relationships, and invariants against the preceding planning decisions. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **06 of 07**. Review tables, fields, relationships, and invariants against the preceding planning decisions. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 This model follows the [POS requirements](01-requirements.md) for one business at one location, multiple registers, whole-unit stock, and manually recorded payments. It replaces the previous wallet/account schema. Roles are Owner, Manager, and Cashier; audit logs remain available to authorized Owner/Manager users. This schema is a draft: Milestone 0 must review it against feature specifications, database design goals, and the chosen Django identity/session approach before implementation.
 

@@ -12,7 +12,7 @@ Check each item after reviewing it and resolving its questions. These track your
 - [ ] Review local/device addressing, hosting options, logging, backup/recovery, CI, and packaging plans.
 - [ ] Resolve the architecture questions and confirm the plan matches documents 01–04 before moving to 06.
 
-Review position **05 of 07**. Review component boundaries, data flows, authentication, and where business rules are enforced. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **05 of 07**. Review component boundaries, data flows, authentication, and where business rules are enforced. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: draft planning outline. This document is the explicit architecture deliverable for M0-06–M0-08 and M0-14. It authorizes no app scaffolding, dependency installation, configuration, migration, CI, container, or deployment work.
 

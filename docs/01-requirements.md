@@ -20,7 +20,7 @@ Check each item after reviewing it and resolving its questions. These track your
 
 * [ ] Record the agreed changes and confirm this requirements review is complete before moving to 02.
 
-Review position **01 of 07**. Agree on purpose, scope, mobile/desktop responsibilities, roles, and required behavior. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **01 of 07**. Agree on purpose, scope, mobile/desktop responsibilities, roles, and required behavior. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 ## Purpose and Business Problem
 
@@ -226,7 +226,7 @@ Before implementation, complete [feature specifications](02-feature-specificatio
 
 * [ ] The documented performance benchmark and backup/restore verification run successfully.
 
-* [ ] A fresh checkout can reproduce setup, tests, benchmark, and the hardware-store demo from the README.
+* [ ] A fresh checkout can reproduce setup, tests, benchmark, and the hardware-store demo from the operating instructions in document 04.
 
 ## Outside the Learning-Project Scope
 

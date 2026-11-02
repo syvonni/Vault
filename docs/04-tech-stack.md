@@ -12,7 +12,7 @@ Check each item after reviewing it and resolving its questions. These track your
 - [ ] Choose an acceptable deployment scope (local demo is valid) and review build/signing/distribution expectations without provisioning anything.
 - [ ] Record resolved choices and any accepted limitations; confirm this stack review is complete before moving to 05.
 
-Review position **04 of 07**. Resolve technology and operating choices that support the agreed requirements and workflows. See the [review order](../README.md#review-order--start-here). This document remains a draft; numbering does not mark it approved.
+Review position **04 of 07**. Resolve technology and operating choices that support the agreed requirements and workflows. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
 Status: documentation only, reviewed against official documentation on 2026-11-01 (Asia/Manila). No application, dependencies, lockfiles, Docker configuration, migrations, CI workflow, credentials, or deployment have been created. Complete [Milestone 0](07-progress-checklist.md) before implementation.
 
