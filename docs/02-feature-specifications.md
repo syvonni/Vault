@@ -90,15 +90,15 @@ The requirements are the source for business rules; these steps explain their ex
 
 **Client/actor:** mobile; operator of the open shift. **Links:** FS-04–FS-05, POS-FR-06, POS-FR-10–POS-FR-16, POS-FR-29.
 
-1. Search active products by SKU/barcode text/name/category and add whole quantities to the cart. Repeated selection consolidates the same SKU.
-2. Review server-calculated lines, catalog/effective prices, eligible discounts/promotions, authorized overrides, tax breakdown, stock, and final payable total. Specify the calculation/approval rules before implementing this expanded flow. Draft edits update the cart's edit counter without reserving stock.
+1. Search active products by SKU/barcode text/name/category and add whole quantities to the cart. Repeated selection consolidates the same SKU. Keep zero-stock products visible with “Out of stock” and disable Add to cart. Show a low-stock warning for positive stock at/below the threshold while allowing valid quantities.
+2. Review server-calculated lines, catalog/effective prices, eligible discounts/promotions, authorized overrides, tax breakdown, stock, and final payable total. Specify the calculation/approval rules before implementing this expanded flow. Draft edits update the cart's edit counter without reserving stock. Enforce the latest known availability against the total quantity already in the cart, including typed quantities and repeated Add actions; explain disabled increases and keep reduction/removal available.
 3. Choose cash or a configured manual noncash method. Cash records tender/change; noncash requires external verification/reference. Confirm what the cashier should do before externally collecting money in the detailed payment specification.
 4. Submit the confirmed cart/version/payment data with one stable action key.
 5. Backend rechecks permission, shift/register/method/product eligibility, current prices, and stock under the appropriate locks.
 6. On success, complete the sale, one payment, receipt snapshots, exact stock deductions, and the request outcome atomically.
 7. Show the receipt on mobile and begin a new deliberate sale only with a new draft/action. Desktop reports can read the same completed records.
 
-**Result/exceptions:** changed price/cart requires reconfirmation; insufficient stock rejects checkout; no partial recorded payment/deduction survives failure. A lost response shows an unresolved state and looks up/replays the same request. Vault does not collect/provider-refund money automatically. If payment was collected externally but Vault definitively rejected checkout, mark reconciliation required and involve a Manager/Owner. Preserve original references, amount, actors, and outcome/resolution evidence; no automatic second collection/refund. Exact reconciliation states and recovery actions remain a required design task; database rollback cannot undo an external payment.
+**Result/exceptions:** refreshed stock below a cart quantity flags that line and blocks checkout until explicit correction; never silently reduce/remove items. Refreshed replenishment re-enables valid actions. The server still rechecks stock when posting because another cashier may sell the remaining units. Changed price/cart requires reconfirmation; insufficient stock rejects checkout; no partial recorded payment/deduction survives failure. A lost response shows an unresolved state and looks up/replays the same request. Vault does not collect/provider-refund money automatically. If payment was collected externally but Vault definitively rejected checkout, mark reconciliation required and involve a Manager/Owner. Preserve original references, amount, actors, and outcome/resolution evidence; no automatic second collection/refund. Exact reconciliation states and recovery actions remain a required design task; database rollback cannot undo an external payment.
 
 Receipt viewing plus PDF download/share is confirmed for mobile and accessible desktop history. Layout, file generation/access control, and platform share/save behavior require specification. Dedicated printer hardware and camera barcode scanning remain deferred.
 
@@ -199,6 +199,13 @@ For each concrete feature, write:
 - Deletion: wrong-role/foreign-tenant requests, Owner reauthentication/confirmation, concurrent requests, pending shifts/postings, export access, cancellation if selected, revoked sessions, interrupted purge/retries, other tenants unchanged, protected retained evidence, and restoring a backup containing a deleted business. Cover hosted and business-local installations.
 
 ## Example Acceptance Scenarios — Drafts to Expand
+
+- Given positive stock at/below the low-stock threshold, display a warning and allow a purchase within availability; the warning alone does not disable selling.
+- Given zero stock, retain the product in lookup, display “Out of stock,” and disable Add to cart; a direct/bypassing API request still cannot complete a sale without stock.
+- Given two units available and one already in the cart, allow only one more; reject typed/repeated-add quantities above two. Reduction/removal remains available.
+- Given cart quantity two and refreshed stock one, flag the line and block checkout until explicit correction. Do not silently change the cart. When a later refresh shows sufficient replenished stock, clear the stock block.
+- Given stock becomes insufficient after the latest client refresh, server checkout rejects safely with affected-line feedback and no payment/stock posting; UI availability is not a reservation.
+
 
 - Given Businesses A and B with the same SKU/register code but different stock/prices, when A searches, sells, reports, exports, or checks an operation, then only A's records and effects appear.
 - Given A's session and a record ID from B, when it is used in a URL, request body, related record, receipt lookup, or operation replay, then access is denied without exposing B's data or committing effects.

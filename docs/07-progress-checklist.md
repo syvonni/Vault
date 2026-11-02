@@ -196,7 +196,7 @@ These are future planning tasks, not completed designs or permission to build. C
 - [ ] **M2-08:** Define the global lock order and recovery/retry policy for authorization, requests, shifts, sales, methods/registers, and product rows. Revalidate eligibility after acquiring relevant locks.
 - [ ] **M2-09:** Implement the stock-on-hand query as summed signed movements, with zero for products with no movements. Lock product rows and read fresh stock before every posting.
 - [ ] **M2-10:** Implement multi-product stock receipts and signed adjustments, with required delivery notes/reasons, audit events, and atomic operation completion; reject corrections causing negative stock.
-- [ ] **M2-11:** Implement product search by SKU/barcode text/name/category, current price/stock, low-stock listing, and scoped inventory-movement history.
+- [ ] **M2-11:** Implement product search by SKU/barcode text/name/category, current price/stock, low-stock listing, and scoped inventory-movement history. Keep zero-stock products visible but disable Add; warn without blocking valid low-stock purchases. Limit total per-SKU cart quantity to latest known availability, allow reduction/removal, flag newly insufficient lines, block checkout until explicit correction, and re-enable valid actions after refreshed replenishment. Server posting still rechecks stock under concurrency controls.
 
 ### 2C. Open shifts, build carts, and sell
 
@@ -293,7 +293,7 @@ These are future planning tasks, not completed designs or permission to build. C
 - [ ] **M4-07:** Build cashier mobile refund request/execution and desktop Manager/Owner approval, plus direct Manager/Owner mobile own-shift execution. Include preview/reason/restock/original-method confirmation and distinct approval/execution evidence under the approved state model.
 - [ ] **M4-08:** Build mobile operator shift activity/count/close/variance explanation and desktop Manager/Owner closed-shift review. Explain unresolved actions/drafts blocking closure.
 - [ ] **M4-09:** Build desktop Manager/Owner sales, refund, stock, cash-variance, integrity, audit, and operation-outcome views with stated date ranges/timezone and correct permissions; expose own-operation retry status in mobile POS too.
-- [ ] **M4-10:** Verify mobile touch/text/keyboard input where applicable, desktop keyboard navigation, supported screen sizes, loading/empty/error states, stock/price errors, and unknown-response recovery in both clients.
+- [ ] **M4-10:** Verify mobile touch/text/keyboard input where applicable, desktop keyboard navigation, supported screen sizes, loading/empty/error states, stock/price errors, and unknown-response recovery in both clients. Verify low-stock warnings, zero-stock Add disabling, typed/repeated-add quantity limits, cart invalidation after a stock drop, replenishment re-enabling, and safe server rejection after stale availability.
 
 ### 4B. Measure the database
 
