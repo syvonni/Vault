@@ -1,21 +1,8 @@
 # Vault POS Conceptual Schema
 
-## Your Review Checklist
+Review position **06 of 07**. Review tables, fields, relationships, and invariants against the preceding planning decisions. Track this review in [GitHub issue #6](https://github.com/syvonni/Vault/issues/6). See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
 
-Check each item after reviewing it and resolving its questions. These track your review, not completed implementation.
-
-- [ ] Review every entity and explain why it is needed for an approved feature.
-- [ ] Review fields, types, nullability, primary/unique/foreign keys, and relationship cardinalities.
-- [ ] Confirm Owner/Manager/Cashier identity/session requirements and the planned Django/auth-library mapping.
-- [ ] Check normalization and justify stored sale/payment snapshots versus derived stock and cash totals.
-- [ ] Walk through a sale, failed/retried checkout, refund/restock, stock correction, and shift closure using the proposed records.
-- [ ] Map each business invariant to constraints, transactions/locks, routines, permissions, or integrity queries; verify retention/deletion rules.
-- [ ] Complete the data dictionary and review candidate indexes against expected query patterns.
-- [ ] Resolve schema questions and confirm it matches documents 01–05; parser success alone does not finalize the design.
-
-Review position **06 of 07**. Review tables, fields, relationships, and invariants against the preceding planning decisions. See the [review order](07-progress-checklist.md#document-review-order). This document remains a draft; numbering does not mark it approved.
-
-This model follows the [POS requirements](01-requirements.md) for one business at one location, multiple registers, whole-unit stock, and manually recorded payments. It replaces the previous wallet/account schema. Roles are Owner, Manager, and Cashier; audit logs remain available to authorized Owner/Manager users. This schema is a draft: Milestone 0 must review it against feature specifications, database design goals, and the chosen Django identity/session approach before implementation.
+This model follows the [POS requirements](01-requirements.md) for shared hosted multi-tenant deployment and business-local single-tenant deployment using the same schema, one location per business, multiple registers, whole-unit stock, and manually recorded payments. It replaces the previous wallet/account schema. Roles are Owner, Manager, and Cashier; audit logs remain available to authorized Owner/Manager users. This schema is a draft: Milestone 0 must review it against feature specifications, database design goals, and the chosen Django identity/session approach before implementation.
 
 The DBML includes logical keys, checks, and candidate indexes, but is not a complete PostgreSQL migration. Its reusable core is catalog → draft sale → completed sale/payment → inventory movement, with refunds and cashier shifts. There is no financial-account or general-ledger subsystem in this release.
 
@@ -29,11 +16,38 @@ The DBML includes logical keys, checks, and candidate indexes, but is not a comp
 - Shift cash is derived from opening float plus cash sale amounts minus cash refunds posted in that shift. Closure stores the checked result, counted cash, and variance.
 - Operation requests provide durable idempotency for all posting actions. Their payload/result JSON records request processing; normalized business tables remain authoritative for sales, refunds, and stock.
 
+## Tenant Modeling Decisions
+
+- `tenants` identifies each business. All other tables are business-owned and carry a non-null `tenant_id`; settings use it as their primary key, yielding at most one settings row per business. Controlled onboarding must create the required settings row.
+- Staff accounts belong to one immutable tenant. Canonical email and token hashes stay unique across tenants within each installation; separate installations have independent identities/tokens. A person working for two businesses in the same installation would need separate accounts/emails in this limited scope. A membership/switching model is deferred.
+- Business identifiers (SKU, optional barcode, category name, register/payment-method codes, receipt number, refund reference) are unique per tenant. UUID primary keys remain unique across tenants within each table, and `(tenant_id, id)` candidate keys support composite foreign keys.
+- Every relationship between business records includes the tenant key, preventing cross-tenant links even if a UUID from another business is known. Nullable relationship columns use normal nullable composite-FK semantics; tenant ownership itself is never nullable. Audit polymorphic targets and IDs embedded in JSON also require same-tenant validation in the write path.
+- All candidate access indexes lead with tenant context. The shared `tenants` registry exposes only the current business to normal staff; operational onboarding is separate. The last-active-Owner rule, exactly-one-cash-method rule, open-shift rules, and idempotency namespace apply per tenant.
+- DBML cannot express the complete RLS/authentication privilege design. Before implementation, specify default-deny tenant policies, write checks, context lifecycle, privileged credential lookup, and runtime-role verification in the architecture/invariant mapping.
+
+## Deployment Interpretation
+
+This DBML is shared by both deployment modes. The hosted database contains several tenants; a business-local database contains one tenant with the same tenant keys, constraints, and planned RLS protections. Local deployment does not introduce an embedded database, a separate schema variant, or a database on each client.
+
+Each installation has one authoritative PostgreSQL database and independent account/token records. Clients connect through that installation’s Django API. Cloud/local synchronization, automatic failover, and live business transfer/merge tooling are outside scope; no replication or synchronization tables are added.
+
 ## Planning Dependencies
 
 Review this model against [database design goals](03-database-design-goals.md), [feature specifications](02-feature-specifications.md), and [architecture planning](05-architecture-planning.md). The current `staff_users`/`staff_sessions` layout expresses conceptual needs; Django user internals and the proposed token/session library require an explicit mapping before this becomes an approved logical schema. No migrations are authorized.
 
 The sale `version` field is an edit counter for detecting stale carts, not a product release number. Database migrations later track schema changes within this one learning project.
+
+## New Scope Gap — Pricing and Business Deletion
+
+**The DBML below is the earlier baseline, not a complete model of POS-FR-32–POS-FR-36. Do not approve or implement it until these gaps are resolved.**
+
+Pricing review must add the approved discount/promotion/tax configuration, effective periods/eligibility, catalog-versus-charged prices, calculation/rounding/allocation snapshots, override actor/reason/approval validity, and reconciled line/header totals. Existing `line_total = quantity * unit_price`, positive-price assumptions, receipt snapshots, and reporting formulas must be reviewed against those decisions; no new pricing tables or formulas are fabricated here before their semantics are agreed.
+
+Business deletion review must model the approved request/lifecycle/confirmation/outcome and operational evidence, then map safe tenant-scoped purge ordering, privileges, active-work handling, retained exceptions, and backup expiry/restore handling. Current restrictive foreign keys and append-only rules protect normal operations; they are not a complete deletion design. Exact fields/tables and purge mechanisms are pending M0 review.
+
+## Additional Schema Gap — Confirmed Client Workflows
+
+**The DBML baseline also predates the confirmed cashier-execution/Manager-approval refund flow, active-device handoff, and external-money reconciliation.** Current refund/request/shift attribution alone is insufficient. Before approval, model same-tenant approver/executor separately, request content/version binding, authorization/expiry/revocation/claim/consumption and failed attempts, restricted refund lookup, one-active-device shift authority, and reconciliation records for actual external movement after rejected posting. Specify state transitions, race/retry/close-shift behavior, retained evidence, and enforcement mapping before choosing final fields/tables. No migrations are authorized.
 
 ## DBML
 
@@ -42,7 +56,7 @@ Paste this block into a current DBML-compatible diagram tool. Syntax: [official 
 ```dbml
 Project vault_pos {
   database_type: 'PostgreSQL'
-  Note: 'Single-location retail POS. Payments are recorded, not processed. See enforcement notes for cross-row and concurrency rules.'
+  Note: 'Shared-schema multi-tenant retail POS; one location per business. Payments are recorded, not processed. See enforcement notes for cross-row and concurrency rules.'
 }
 
 Enum staff_role {
@@ -91,22 +105,32 @@ Enum inventory_movement_kind {
   refund
 }
 
+Table tenants {
+  id uuid [pk]
+  slug varchar(80) [not null, unique, note: 'Stable service-wide business identifier; not an authorization credential.']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'One business with one physical location. Controlled onboarding creates settings, cash method, and first Owner atomically; no public signup.'
+}
+
 Table store_settings {
-  id smallint [pk, note: 'Singleton row with id = 1.']
+  tenant_id uuid [pk]
   display_name varchar(160) [not null]
   currency_code char(3) [not null, default: 'PHP']
   reporting_timezone varchar(60) [not null, default: 'Asia/Manila']
   updated_at timestamptz [not null, default: `now()`]
 
   checks {
-    `id = 1` [name: 'single_store_settings']
     `currency_code = 'PHP'` [name: 'store_php_only']
     `reporting_timezone = 'Asia/Manila'` [name: 'initial_reporting_timezone']
   }
+
+  Note: 'One settings row per business; controlled onboarding creates it.'
 }
 
 Table staff_users {
   id uuid [pk]
+  tenant_id uuid [not null]
   email varchar(254) [not null, unique, note: 'Canonical normalized email.']
   display_name varchar(100) [not null]
   password_hash text [not null]
@@ -115,11 +139,16 @@ Table staff_users {
   created_at timestamptz [not null, default: `now()`]
   updated_at timestamptz [not null, default: `now()`]
 
-  Note: 'One role per staff member initially. No public registration. Retain attribution after deactivation.'
+  Note: 'One immutable tenant and one role per staff account; email is globally unique. No public registration. Retain attribution after deactivation.'
+
+  indexes {
+    (tenant_id, id) [unique]
+  }
 }
 
 Table staff_sessions {
   id uuid [pk]
+  tenant_id uuid [not null]
   staff_user_id uuid [not null]
   token_hash varchar(255) [not null, unique]
   client_description text
@@ -133,21 +162,29 @@ Table staff_sessions {
   }
 
   indexes {
-    (staff_user_id, created_at, id)
+    (tenant_id, id) [unique]
+    (tenant_id, staff_user_id, created_at, id)
   }
 }
 
 Table categories {
   id uuid [pk]
-  name varchar(100) [not null, unique]
+  tenant_id uuid [not null]
+  name varchar(100) [not null]
   is_active boolean [not null, default: true]
+
+  indexes {
+    (tenant_id, id) [unique]
+    (tenant_id, name) [unique]
+  }
 }
 
 Table products {
   id uuid [pk]
+  tenant_id uuid [not null]
   category_id uuid [not null]
-  sku varchar(60) [not null, unique]
-  barcode varchar(80) [unique]
+  sku varchar(60) [not null]
+  barcode varchar(80)
   name varchar(160) [not null]
   unit_label varchar(40) [not null, note: 'Descriptive whole-package label such as piece or box; no unit conversion.']
   selling_price numeric(20,2) [not null]
@@ -162,7 +199,10 @@ Table products {
   }
 
   indexes {
-    (category_id, is_active)
+    (tenant_id, id) [unique]
+    (tenant_id, category_id, is_active)
+    (tenant_id, sku) [unique]
+    (tenant_id, barcode) [unique]
   }
 
   Note: 'No editable stock column. Sum signed movements for stock; lock this row before validating/posting stock changes. Disabled categories prevent new product assignment; existing product eligibility follows product status.'
@@ -170,23 +210,36 @@ Table products {
 
 Table payment_methods {
   id uuid [pk]
-  code varchar(40) [not null, unique]
+  tenant_id uuid [not null]
+  code varchar(40) [not null]
   name varchar(80) [not null]
   kind payment_kind [not null]
   is_enabled boolean [not null, default: true]
 
-  Note: 'Seed exactly one built-in cash method; kind/code immutable. Other methods are manual noncash labels. Disabled methods still support recording a refund against an original payment.'
+  Note: 'Seed exactly one built-in cash method per tenant; kind/code immutable. Other methods are manual noncash labels. Disabled methods still support recording a refund against an original payment.'
+
+  indexes {
+    (tenant_id, id) [unique]
+    (tenant_id, code) [unique]
+  }
 }
 
 Table registers {
   id uuid [pk]
-  code varchar(40) [not null, unique]
+  tenant_id uuid [not null]
+  code varchar(40) [not null]
   name varchar(80) [not null]
   is_enabled boolean [not null, default: true]
+
+  indexes {
+    (tenant_id, id) [unique]
+    (tenant_id, code) [unique]
+  }
 }
 
 Table operation_requests {
   id uuid [pk]
+  tenant_id uuid [not null]
   requested_by_user_id uuid [not null]
   idempotency_key varchar(128) [not null]
   request_fingerprint char(64) [not null]
@@ -207,10 +260,11 @@ Table operation_requests {
   }
 
   indexes {
-    (requested_by_user_id, idempotency_key) [unique]
-    (target_shift_id, status, created_at)
-    target_sale_id
-    (status, created_at, id)
+    (tenant_id, id) [unique]
+    (tenant_id, requested_by_user_id, idempotency_key) [unique]
+    (tenant_id, target_shift_id, status, created_at)
+    (tenant_id, target_sale_id)
+    (tenant_id, status, created_at, id)
   }
 
   Note: 'Checkout/refund requests identify their target shift before posting, allowing close-shift to detect unresolved processing work. FK targets may be null for early business rejection or shift opening. Terminal outcomes are immutable.'
@@ -218,6 +272,7 @@ Table operation_requests {
 
 Table shifts {
   id uuid [pk]
+  tenant_id uuid [not null]
   register_id uuid [not null]
   operator_user_id uuid [not null]
   status shift_status [not null, default: 'open']
@@ -242,8 +297,9 @@ Table shifts {
   }
 
   indexes {
-    (operator_user_id, opened_at, id)
-    (register_id, opened_at, id)
+    (tenant_id, id) [unique]
+    (tenant_id, operator_user_id, opened_at, id)
+    (tenant_id, register_id, opened_at, id)
   }
 
   Note: 'Partial unique indexes must permit at most one open shift per register and operator. Closing snapshots become immutable. Current expected cash is derived from recorded cash payments/refunds.'
@@ -251,11 +307,12 @@ Table shifts {
 
 Table sales {
   id uuid [pk]
+  tenant_id uuid [not null]
   shift_id uuid [not null]
   status sale_status [not null, default: 'draft']
   version integer [not null, default: 1]
   total_amount numeric(20,2) [not null, default: 0]
-  receipt_number varchar(50) [unique]
+  receipt_number varchar(50)
   receipt_business_name varchar(160)
   receipt_operator_name varchar(100)
   receipt_register_name varchar(80)
@@ -276,8 +333,10 @@ Table sales {
   }
 
   indexes {
-    (shift_id, created_at, id)
-    (status, completed_at, id)
+    (tenant_id, id) [unique]
+    (tenant_id, shift_id, created_at, id)
+    (tenant_id, status, completed_at, id)
+    (tenant_id, receipt_number) [unique]
   }
 
   Note: 'One draft owner via its shift operator. Total must match line totals. Completed sale remains completed after refund; derive refunded indicator from the linked refund. No customer/credit-sale model initially.'
@@ -285,6 +344,7 @@ Table sales {
 
 Table sale_items {
   id uuid [pk]
+  tenant_id uuid [not null]
   sale_id uuid [not null]
   product_id uuid [not null]
   sku_snapshot varchar(60) [not null]
@@ -301,8 +361,9 @@ Table sale_items {
   }
 
   indexes {
-    (sale_id, product_id) [unique]
-    product_id
+    (tenant_id, id) [unique]
+    (tenant_id, sale_id, product_id) [unique]
+    (tenant_id, product_id)
   }
 
   Note: 'Consolidate each SKU once per sale. Draft lines may change under sale lock/version checks; completed/voided document lines may not.'
@@ -310,6 +371,7 @@ Table sale_items {
 
 Table payments {
   id uuid [pk]
+  tenant_id uuid [not null]
   sale_id uuid [not null, unique]
   payment_method_id uuid [not null]
   method_name_snapshot varchar(80) [not null]
@@ -325,7 +387,8 @@ Table payments {
   }
 
   indexes {
-    payment_method_id
+    (tenant_id, id) [unique]
+    (tenant_id, payment_method_id)
   }
 
   Note: 'Only a successfully completed sale has a payment, equal to sale total. Sale completion time supplies posting time. Reference is operator-entered evidence, not automatic settlement verification or a globally unique provider key.'
@@ -333,10 +396,11 @@ Table payments {
 
 Table refunds {
   id uuid [pk]
+  tenant_id uuid [not null]
   sale_id uuid [not null, unique]
   shift_id uuid [not null]
   operation_request_id uuid [not null, unique]
-  reference varchar(50) [not null, unique]
+  reference varchar(50) [not null]
   amount numeric(20,2) [not null]
   reason text [not null]
   external_reference varchar(160)
@@ -347,21 +411,25 @@ Table refunds {
   }
 
   indexes {
-    (shift_id, completed_at, id)
-    (completed_at, id)
+    (tenant_id, id) [unique]
+    (tenant_id, shift_id, completed_at, id)
+    (tenant_id, completed_at, id)
+    (tenant_id, reference) [unique]
   }
 
-  Note: 'Successful full refunds only. Amount equals original sale total; payment method comes from its original payment. Actor is the current shift operator/requester. Refund-time product/method disablement does not block a valid return.'
+  Note: 'Successful full refunds only. Amount equals original sale total; payment method comes from its original payment. Executor is the current shift operator/requester. Separate approval evidence is a pending schema extension. Refund-time product/method disablement does not block a valid return.'
 }
 
 Table refund_items {
   id uuid [pk]
+  tenant_id uuid [not null]
   refund_id uuid [not null]
   sale_item_id uuid [not null, unique]
   restock boolean [not null]
 
   indexes {
-    (refund_id, sale_item_id) [unique]
+    (tenant_id, id) [unique]
+    (tenant_id, refund_id, sale_item_id) [unique]
   }
 
   Note: 'Exactly one row for every original sale line. Quantity/value derive from immutable original line. Restock=true produces one movement restoring the entire sold quantity; false produces none.'
@@ -369,6 +437,7 @@ Table refund_items {
 
 Table inventory_movements {
   id uuid [pk]
+  tenant_id uuid [not null]
   product_id uuid [not null]
   operation_request_id uuid [not null]
   kind inventory_movement_kind [not null]
@@ -384,8 +453,9 @@ Table inventory_movements {
   }
 
   indexes {
-    (product_id, posted_at, id)
-    (operation_request_id, product_id) [unique]
+    (tenant_id, id) [unique]
+    (tenant_id, product_id, posted_at, id)
+    (tenant_id, operation_request_id, product_id) [unique]
   }
 
   Note: 'Append-only quantity ledger. On-hand is SUM(quantity_delta), accumulated as bigint. Cross-row validation must check linked line product/quantity, operation type/outcome, posting timestamps, and no negative product balance.'
@@ -393,6 +463,7 @@ Table inventory_movements {
 
 Table audit_events {
   id uuid [pk]
+  tenant_id uuid [not null]
   actor_user_id uuid [not null]
   action varchar(80) [not null]
   entity_type varchar(80) [not null]
@@ -403,41 +474,60 @@ Table audit_events {
   created_at timestamptz [not null, default: `now()`]
 
   indexes {
-    (entity_type, entity_id, created_at, id)
-    (actor_user_id, created_at, id)
+    (tenant_id, id) [unique]
+    (tenant_id, entity_type, entity_id, created_at, id)
+    (tenant_id, actor_user_id, created_at, id)
   }
 
   Note: 'Append-only safe privileged/void/shift history, committed with the related action. Polymorphic target validated by the authorized write path; secrets are excluded.'
 }
 
-Ref: staff_sessions.staff_user_id > staff_users.id [delete: restrict]
-Ref: products.category_id > categories.id [delete: restrict]
-Ref: operation_requests.requested_by_user_id > staff_users.id [delete: restrict]
-Ref: operation_requests.target_sale_id > sales.id [delete: restrict]
-Ref: operation_requests.target_shift_id > shifts.id [delete: restrict]
-Ref: shifts.register_id > registers.id [delete: restrict]
-Ref: shifts.operator_user_id > staff_users.id [delete: restrict]
-Ref: shifts.open_operation_id > operation_requests.id [delete: restrict]
-Ref: shifts.close_operation_id > operation_requests.id [delete: restrict]
-Ref: sales.shift_id > shifts.id [delete: restrict]
-Ref: sales.completion_operation_id > operation_requests.id [delete: restrict]
-Ref: sales.void_operation_id > operation_requests.id [delete: restrict]
-Ref: sale_items.sale_id > sales.id [delete: restrict]
-Ref: sale_items.product_id > products.id [delete: restrict]
-Ref: sales.id - payments.sale_id [delete: restrict]
-Ref: payments.payment_method_id > payment_methods.id [delete: restrict]
-Ref: sales.id - refunds.sale_id [delete: restrict]
-Ref: refunds.shift_id > shifts.id [delete: restrict]
-Ref: refunds.operation_request_id > operation_requests.id [delete: restrict]
-Ref: refund_items.refund_id > refunds.id [delete: restrict]
-Ref: refund_items.sale_item_id > sale_items.id [delete: restrict]
-Ref: inventory_movements.product_id > products.id [delete: restrict]
-Ref: inventory_movements.operation_request_id > operation_requests.id [delete: restrict]
-Ref: inventory_movements.sale_item_id > sale_items.id [delete: restrict]
-Ref: inventory_movements.refund_item_id > refund_items.id [delete: restrict]
-Ref: audit_events.actor_user_id > staff_users.id [delete: restrict]
+Ref: store_settings.tenant_id > tenants.id [delete: restrict]
+Ref: staff_users.tenant_id > tenants.id [delete: restrict]
+Ref: staff_sessions.tenant_id > tenants.id [delete: restrict]
+Ref: categories.tenant_id > tenants.id [delete: restrict]
+Ref: products.tenant_id > tenants.id [delete: restrict]
+Ref: payment_methods.tenant_id > tenants.id [delete: restrict]
+Ref: registers.tenant_id > tenants.id [delete: restrict]
+Ref: operation_requests.tenant_id > tenants.id [delete: restrict]
+Ref: shifts.tenant_id > tenants.id [delete: restrict]
+Ref: sales.tenant_id > tenants.id [delete: restrict]
+Ref: sale_items.tenant_id > tenants.id [delete: restrict]
+Ref: payments.tenant_id > tenants.id [delete: restrict]
+Ref: refunds.tenant_id > tenants.id [delete: restrict]
+Ref: refund_items.tenant_id > tenants.id [delete: restrict]
+Ref: inventory_movements.tenant_id > tenants.id [delete: restrict]
+Ref: audit_events.tenant_id > tenants.id [delete: restrict]
+
+Ref: staff_sessions.(tenant_id, staff_user_id) > staff_users.(tenant_id, id) [delete: restrict]
+Ref: products.(tenant_id, category_id) > categories.(tenant_id, id) [delete: restrict]
+Ref: operation_requests.(tenant_id, requested_by_user_id) > staff_users.(tenant_id, id) [delete: restrict]
+Ref: operation_requests.(tenant_id, target_sale_id) > sales.(tenant_id, id) [delete: restrict]
+Ref: operation_requests.(tenant_id, target_shift_id) > shifts.(tenant_id, id) [delete: restrict]
+Ref: shifts.(tenant_id, register_id) > registers.(tenant_id, id) [delete: restrict]
+Ref: shifts.(tenant_id, operator_user_id) > staff_users.(tenant_id, id) [delete: restrict]
+Ref: shifts.(tenant_id, open_operation_id) > operation_requests.(tenant_id, id) [delete: restrict]
+Ref: shifts.(tenant_id, close_operation_id) > operation_requests.(tenant_id, id) [delete: restrict]
+Ref: sales.(tenant_id, shift_id) > shifts.(tenant_id, id) [delete: restrict]
+Ref: sales.(tenant_id, completion_operation_id) > operation_requests.(tenant_id, id) [delete: restrict]
+Ref: sales.(tenant_id, void_operation_id) > operation_requests.(tenant_id, id) [delete: restrict]
+Ref: sale_items.(tenant_id, sale_id) > sales.(tenant_id, id) [delete: restrict]
+Ref: sale_items.(tenant_id, product_id) > products.(tenant_id, id) [delete: restrict]
+Ref: payments.(tenant_id, sale_id) > sales.(tenant_id, id) [delete: restrict]
+Ref: payments.(tenant_id, payment_method_id) > payment_methods.(tenant_id, id) [delete: restrict]
+Ref: refunds.(tenant_id, sale_id) > sales.(tenant_id, id) [delete: restrict]
+Ref: refunds.(tenant_id, shift_id) > shifts.(tenant_id, id) [delete: restrict]
+Ref: refunds.(tenant_id, operation_request_id) > operation_requests.(tenant_id, id) [delete: restrict]
+Ref: refund_items.(tenant_id, refund_id) > refunds.(tenant_id, id) [delete: restrict]
+Ref: refund_items.(tenant_id, sale_item_id) > sale_items.(tenant_id, id) [delete: restrict]
+Ref: inventory_movements.(tenant_id, product_id) > products.(tenant_id, id) [delete: restrict]
+Ref: inventory_movements.(tenant_id, operation_request_id) > operation_requests.(tenant_id, id) [delete: restrict]
+Ref: inventory_movements.(tenant_id, sale_item_id) > sale_items.(tenant_id, id) [delete: restrict]
+Ref: inventory_movements.(tenant_id, refund_item_id) > refund_items.(tenant_id, id) [delete: restrict]
+Ref: audit_events.(tenant_id, actor_user_id) > staff_users.(tenant_id, id) [delete: restrict]
 
 TableGroup staff_and_setup {
+  tenants
   store_settings
   staff_users
   staff_sessions
@@ -468,26 +558,33 @@ TableGroup operations_and_audit {
 
 ## Worked Example
 
+This baseline example has no discount, promotion, override, or tax applied; additional priced/taxed fixtures require M0-26 review.
+
+All figures below belong to Business A. Business B may use the same SKU, register code, and receipt number while maintaining independent products, stock, shifts, and reports. No operation for A may link records from B.
+
 Receive 10 hammers, each priced at PHP 150. Open a shift with PHP 1,000 float. Sell two hammers for PHP 300, accept PHP 500, and return PHP 200 change. Stock becomes 8; expected drawer cash becomes PHP 1,300.
 
-A manager opens their own shift at another register with PHP 500 float and records a full PHP 300 cash refund. Restocking both hammers restores stock to 10. The original sale shift still expects PHP 1,300; the refund shift now expects PHP 200. On that date the reports show gross sales PHP 300, refunds PHP 300, and net sales zero. If the returned line is not restocked, stock stays at 8. None of these figures states profit.
+The cashier requests a full PHP 300 cash refund in their still-open original shift, and a Manager approves from their own desktop session. The cashier executes; the refund records both identities and decreases that cashier’s expected cash from PHP 1,300 to PHP 1,000. Restocking both hammers restores stock to 10. If execution instead occurs in a later shift, its drawer bears the refund while the original closed shift remains unchanged. On that date the reports show gross sales PHP 300, refunds PHP 300, and net sales zero. If the returned line is not restocked, stock stays at 8. None of these figures states profit.
 
 ## Enforcement Beyond DBML
 
-1. **Access and configuration:** Enforce active staff, role hierarchy, draft/shift ownership, the last active owner rule, and session revocation. Serialize concurrent owner changes using a stable settings/user lock protocol. Block access/role changes for users with open shifts; preserve attribution. Seed exactly one immutable enabled cash method using partial uniqueness and controlled setup. Category disablement affects new product assignment, not existing product eligibility. Validate nonblank names, reasons, and external references.
+1. **Access and configuration:** Enforce active staff, role hierarchy, draft/shift ownership, the last active owner rule, and session revocation. Serialize concurrent owner changes using a stable tenant/settings/user lock protocol. Block access/role changes for users with open shifts; preserve attribution. Seed exactly one immutable enabled cash method per tenant using partial uniqueness and controlled setup. Category disablement affects new product assignment, not existing product eligibility. Validate nonblank names, reasons, and external references.
 2. **Shift exclusivity:** Add PostgreSQL partial unique indexes on register and operator where shift status is open. Open/close requests have correct types, actors, and timestamps. Opening creates the shift and finalizes its request atomically. Never trust caller-supplied operator identities or cash totals.
 3. **Drafts and snapshots:** Lock the sale on every edit/checkout/void and check its version. Add or update a SKU as a single line; increment version for each edit. Checkout compares the confirmed cart/version/prices with current locked product prices, revalidates eligibility, and freezes SKU/name/unit/price plus receipt business/operator/register labels. Compute totals with bounded decimal arithmetic. Prohibit edits/deletions of completed/voided headers/lines except no further business mutation; refunds are separate records.
 4. **Posting and stock locks:** Specify a global lock order for authorization/settings, request, shift, sale, method/register, and ordered product rows, with bounded retries where necessary. Compute stock in a fresh statement after product locks at READ COMMITTED, or use a correctly retried alternative isolation strategy. The product row is the lock target even at zero stock. Price/activation edits, receipts, adjustments, checkout, and returns must coordinate with those locks. Posting must not overdraw stock.
 5. **Atomic sale patterns:** At completion require at least one line, matching header/line totals, exactly one matching payment, and exactly one deduction per sold line with the same product and negative quantity. Amount/tender/change and method snapshots must match confirmed data. Sale, payment, movements, and successful operation commit together; no payment/movement survives a rejected/failed checkout. Deduction posted_at equals sale completed_at. A single completed draft is protected even if two request keys compete.
-6. **Durable requests and recovery:** Uniquely claim requester/key and persist canonical payload/fingerprint before execution. Replays compare the hash and return the saved outcome; changed data conflicts. Business effects and a terminal successful outcome commit atomically under a locked processing request. After rollback, retain rejected/failed outcomes separately; allow a newly keyed deliberate attempt. Recovery competes for that same request lock and verifies committed state before resolving interrupted requests. Disable uncontrolled application writes that bypass this path.
+6. **Durable requests and recovery:** Uniquely claim tenant/requester/key and persist canonical payload/fingerprint before execution. Replays compare the hash and return the saved outcome; changed data conflicts. Business effects and a terminal successful outcome commit atomically under a locked processing request. After rollback, retain rejected/failed outcomes separately; allow a newly keyed deliberate attempt. Recovery competes for that same request lock and verifies committed state before resolving interrupted requests. Disable uncontrolled application writes that bypass this path.
 7. **Request acceptance versus shift close:** Validate and attach checkout/refund requests to their current shift while holding that shift's lock during request acceptance. Closing takes the same lock and checks for other processing checkout/refund requests and remaining drafts. New acceptance/draft creation requires an open shift. Closure itself is excluded from the unresolved-work check. This prevents closing between request acceptance and execution. A processing request that has lost its client still needs recovery before closure.
-8. **Full refunds:** Lock the original sale and current shift, verify role/ownership and one full successful refund, and include exactly its full set of lines. Method derives from the original payment, amount from the sale; current pricing/enablement does not change them. Require externally verified reference for noncash and no external reference for cash. Cash refunds require enough expected current-shift cash. Post one positive stock movement per restocked line, none for non-restocked lines, with exact original quantity/product and refund completion time. Refund/header/lines/movements/audit/request outcome commit together. Unique refunds.sale_id excludes second successes while failed attempts remain in operation_requests.
+8. **Full refunds:** Lock the original sale and current shift, verify executing-shift ownership, specific valid Manager/Owner approval (or authorized direct own-shift execution), and one full successful refund, and include exactly its full set of lines. Method derives from the original payment, amount from the sale; current pricing/enablement does not change them. Require externally verified reference for noncash and no external reference for cash. Cash refunds require enough expected current-shift cash. Post one positive stock movement per restocked line, none for non-restocked lines, with exact original quantity/product and refund completion time. Refund/header/lines/movements/audit/request outcome commit together. Unique refunds.sale_id excludes second successes while failed attempts remain in operation_requests.
 9. **Cash reconciliation:** Close under shift lock, derive expected cash from opening float and completed cash sales/refunds, compare against nonnegative counted cash, compute variance, and require an explanation if nonzero. Close timestamp/cash snapshots/audit and request completion commit together. Refunds use their current shift, never rewrite the original shift, and never masquerade as a void or negative sale payment.
-10. **Append-only posting:** Restrict runtime privileges and use controlled routines/deferred triggers as appropriate for cross-row completion checks. No direct writes/deletes to payments, refunds, movements, closed shifts, completed documents, or audit events. Quantity receipts/adjustments also commit their movements/audit/successful request atomically. JSON request history is not an alternate editable inventory/sales store. Numeric scale checks at the API/routine boundary must reject excess decimals rather than relying on column rounding.
+10. **Append-only posting:** Restrict runtime privileges and use controlled routines/deferred triggers as appropriate for cross-row completion checks. Outside the separately reviewed tenant-deletion path, no direct writes/deletes to payments, refunds, movements, closed shifts, completed documents, or audit events. Quantity receipts/adjustments also commit their movements/audit/successful request atomically. JSON request history is not an alternate editable inventory/sales store. Numeric scale checks at the API/routine boundary must reject excess decimals rather than relying on column rounding.
 11. **Reporting and integrity:** Report sales by completed_at and refunds by their own completed_at; use payment kind snapshots and the original payment for refund method. Cashier scope is their own shifts; manager/owner store-wide reads differ from write permissions. Integrity SQL must check sale/line/payment equality, exact stock patterns, full refund coverage/value, no negative stock, operation/document links, and closed-shift cash snapshots against the derived formula. Use one consistent snapshot; as-of stock uses only movements posted at/before cutoff. Sales/refund filters should apply their respective posting times. Audit targets are intentionally polymorphic and need authorized target checks, not fictitious universal foreign keys.
+
+12. **Tenant isolation:** Enable and force reviewed RLS policies on every business-owned table and restrict `tenants` visibility. Plan USING/WITH CHECK policies with server-derived transaction-local context; missing context denies access. The runtime role cannot own tables, bypass RLS, or access unrestricted provisioning/backup credentials. Define the narrow pre-authentication credential/token lookup separately. All request and background/recovery paths establish/clear validated context, including after exceptions and pooled-connection reuse. Composite foreign keys enforce same-tenant links; immutable tenant ownership, polymorphic audit targets, JSON references, and per-tenant last-Owner/cash-method rules need controlled checks too. Verify with two tenants and the real runtime role, not a migration owner. Sources: [PostgreSQL RLS](https://www.postgresql.org/docs/17/ddl-rowsecurity.html), [composite foreign keys](https://www.postgresql.org/docs/17/ddl-constraints.html#DDL-CONSTRAINTS-FK).
 
 ## Requirement Coverage
 
+- **POS-FR-30–POS-FR-31:** tenants, tenant-keyed settings/staff and all business tables, same-tenant composite foreign keys, scoped uniqueness, and planned RLS/authentication enforcement.
 - **POS-FR-01–POS-FR-04:** staff/settings/sessions/registers/payment methods, plus audit and server permissions.
 - **POS-FR-05–POS-FR-09:** categories/products/inventory movements and operation requests.
 - **POS-FR-10–POS-FR-17:** sales/items/payments/shifts and durable requests, including receipt snapshots and immutable completion.
